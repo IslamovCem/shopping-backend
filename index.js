@@ -25,7 +25,6 @@ mongoose.connect(process.env.MONGO_URI)
     console.error('❌ Mongo xato:', err);
   });
 
-// ✅ Telegram bot ishga tushadi
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
 console.log("🌀 BOT YUKLANDI");
 
@@ -33,9 +32,10 @@ const BACKEND_URL = process.env.BACKEND_URL;
 const IMGBB_API_KEY = process.env.IMGBB_API_KEY;
 const adminIds = [1573771417];
 let tempImages = {};
+let latestProductByAdmin = {}; // yangi mahsulotni saqlash
 const activeUsers = new Set();
+const activeGroups = new Set();
 
-// ✅ /start komandasi
 bot.onText(/\/start/, (msg) => {
   console.log("✅ /start buyrug‘i keldi!");
 
@@ -45,7 +45,12 @@ bot.onText(/\/start/, (msg) => {
   const lastName = msg.from.last_name || '';
   const fullName = name + (lastName ? ' ' + lastName : '');
 
-  activeUsers.add(userId);
+  if (msg.chat.type === 'private') {
+    activeUsers.add(chatId);
+  } else if (msg.chat.type === 'group' || msg.chat.type === 'supergroup') {
+    activeGroups.add(chatId);
+  }
+
   const usersCount = activeUsers.size;
 
   if (adminIds.includes(userId)) {
@@ -62,18 +67,17 @@ bot.onText(/\/start/, (msg) => {
       }
     });
   } else {
-  bot.sendMessage(chatId, `Assalomu alaykum, ${fullName}!
+    bot.sendMessage(chatId, `Assalomu alaykum, ${fullName}!
 🛍 Vitamin va dori mahsulotlari do‘koniga xush kelibsiz!`, {
-    reply_markup: {
-      inline_keyboard: [[
-        { text: "🛍 Do‘konni ochish", web_app: { url: "https://telegram-miniapp-jade-gamma.vercel.app" } }
-      ]]
-    }
-  });
-}
+      reply_markup: {
+        inline_keyboard: [[
+          { text: "🛍 Do‘konni ochish", web_app: { url: "https://telegram-miniapp-jade-gamma.vercel.app" } }
+        ]]
+      }
+    });
+  }
 });
 
-// ✅ /add komandasi
 bot.onText(/\/add/, (msg) => {
   if (!adminIds.includes(msg.from.id)) return;
   const chatId = msg.chat.id;
@@ -81,7 +85,6 @@ bot.onText(/\/add/, (msg) => {
 Nomi;Turi;Narxi;Tavsif;Yosh`);
 });
 
-// ✅ Rasm qabul qilish
 bot.on('photo', async (msg) => {
   if (!adminIds.includes(msg.from.id)) return;
 
@@ -92,7 +95,6 @@ bot.on('photo', async (msg) => {
   bot.sendMessage(msg.chat.id, '✅ Rasm qabul qilindi. Endi quyidagi formatda yozing:\nNomi;Turi;Narxi;Tavsif;Yosh');
 });
 
-// ✅ Matn bilan mahsulot qo‘shish
 bot.on('message', async (msg) => {
   const userId = msg.from.id;
   if (!adminIds.includes(userId)) return;
@@ -107,10 +109,18 @@ bot.on('message', async (msg) => {
     const [name, type, price, description, age] = parts;
     try {
       const imageUrl = await uploadToImgbb(tempImages[userId]);
-      const res = await axios.post(`${BACKEND_URL}/api/products`, {
-        name, type, price, image: imageUrl, description, age
+      const product = { name, type, price, image: imageUrl, description, age, available: true };
+      const res = await axios.post(`${BACKEND_URL}/api/products`, product);
+
+      bot.sendMessage(msg.chat.id, `✅ Mahsulot qo‘shildi: ${res.data.name}\n❓ Foydalanuvchilarga yuborilsinmi?`, {
+        reply_markup: {
+          inline_keyboard: [[
+            { text: "✅ Ha", callback_data: `notify_yes_${userId}` },
+            { text: "❌ Yo‘q", callback_data: `notify_no_${userId}` }
+          ]]
+        }
       });
-      bot.sendMessage(msg.chat.id, `✅ Mahsulot qo‘shildi: ${res.data.name}`);
+      latestProductByAdmin[userId] = product;
     } catch (err) {
       bot.sendMessage(msg.chat.id, `❌ Xatolik: ${err.message}`);
     }
@@ -118,7 +128,39 @@ bot.on('message', async (msg) => {
   }
 });
 
-// ✅ /list komandasi
+bot.on('callback_query', async (query) => {
+  const [prefix, choice, userId] = query.data.split('_');
+  if (prefix === 'notify') {
+    const product = latestProductByAdmin[userId];
+    if (!product) return;
+
+    const caption = `📢 <b>Yangi mahsulot qo‘shildi!</b>\n\n📦 <b>${product.name}</b>\n💰 ${product.price} so‘m\n🧾 ${product.description}\n👶 ${product.age}+ yosh`;
+    const options = {
+      parse_mode: "HTML",
+      reply_markup: {
+        inline_keyboard: [[
+          { text: "🛒 Xarid qilish", web_app: { url: "https://telegram-miniapp-jade-gamma.vercel.app" } }
+        ]]
+      }
+    };
+
+    if (choice === 'yes') {
+      for (const userId of activeUsers) {
+        bot.sendPhoto(userId, product.image, { caption, ...options }).catch(() => {});
+      }
+      for (const groupId of activeGroups) {
+        bot.sendPhoto(groupId, product.image, { caption, ...options }).catch(() => {});
+      }
+      bot.sendMessage(query.message.chat.id, '📬 Xabar yuborildi!');
+    } else {
+      bot.sendMessage(query.message.chat.id, '🚫 Xabar yuborilmadi.');
+    }
+
+    delete latestProductByAdmin[userId];
+    bot.answerCallbackQuery(query.id);
+  }
+});
+
 bot.onText(/\/list/, async (msg) => {
   if (!adminIds.includes(msg.from.id)) return;
   try {
@@ -139,13 +181,11 @@ bot.onText(/\/list/, async (msg) => {
   }
 });
 
-// ✅ /delete komandasi (oddiy)
 bot.onText(/\/delete/, (msg) => {
   if (!adminIds.includes(msg.from.id)) return;
   bot.sendMessage(msg.chat.id, "🗑 O‘chirish funksiyasi hozircha faollashtirilmagan.");
 });
 
-// ✅ Rasmni ImgBB ga yuklash
 async function uploadToImgbb(imageUrl) {
   const imageBuffer = await axios.get(imageUrl, { responseType: 'arraybuffer' });
   const base64Image = Buffer.from(imageBuffer.data).toString('base64');
