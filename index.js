@@ -62,15 +62,15 @@ bot.onText(/\/start/, (msg) => {
       }
     });
   } else {
-    bot.sendMessage(chatId, `Assalomu alaykum, ${fullName}!
+  bot.sendMessage(chatId, `Assalomu alaykum, ${fullName}!
 🛍 Vitamin va dori mahsulotlari do‘koniga xush kelibsiz!`, {
-      reply_markup: {
-        keyboard: [[{ text: "🛍 Mini Do‘kon", web_app: { url: "https://telegram-miniapp-jade-gamma.vercel.app/" } }]],
-        resize_keyboard: true,
-        one_time_keyboard: false
-      }
-    });
-  }
+    reply_markup: {
+      inline_keyboard: [[
+        { text: "🛍 Do‘konni ochish", web_app: { url: miniAppURL } }
+      ]]
+    }
+  });
+}
 });
 
 // ✅ /add komandasi
