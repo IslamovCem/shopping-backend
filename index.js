@@ -30,7 +30,7 @@ console.log("🤖 BOT YUKLANDI");
 const BACKEND_URL = process.env.BACKEND_URL;
 const IMGBB_API_KEY = process.env.IMGBB_API_KEY;
 const BROADCAST_GROUP_ID = -1002693584186;
-const adminIds = [1573771417];
+const adminIds = [974963341, 1573771417];
 let tempImages = {};
 let latestProductByAdmin = {};
 const activeUsers = new Set();
