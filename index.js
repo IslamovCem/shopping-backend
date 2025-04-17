@@ -53,7 +53,7 @@ bot.onText(/\/start/, (msg) => {
   const keyboard = {
     inline_keyboard: [[
       {
-        text: "🛙 Do‘konni ochish",
+        text: "🛍 Do‘konni ochish",
         web_app: { url: "https://telegram-miniapp-jade-gamma.vercel.app" }
       }
     ]]
@@ -67,7 +67,7 @@ bot.onText(/\/start/, (msg) => {
     });
   } else {
     bot.sendMessage(chatId, `Assalomu alaykum, ${fullName}!
-🛙 Do‘konimizga xush kelibsiz!`, {
+🛍 Do‘konimizga xush kelibsiz!`, {
       reply_markup: keyboard
     });
   }
