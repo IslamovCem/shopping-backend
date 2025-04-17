@@ -45,7 +45,7 @@ bot.onText(/\/start/, (msg) => {
   const userId = msg.from.id;
   const name = msg.from.first_name || '';
   const lastName = msg.from.last_name || '';
-  const fullName = `${name}${lastName ? ' ' + lastName : ''}`;
+  const fullName = name + (lastName ? ' ' + lastName : '');
 
   if (msg.chat.type === 'private') activeUsers.add(chatId);
 
@@ -161,6 +161,7 @@ bot.on('callback_query', async (query) => {
       bot.sendPhoto(uid, product.image, { caption, ...options }).catch(() => {});
     }
     bot.sendPhoto(BROADCAST_GROUP_ID, product.image, { caption, ...options }).catch(() => {});
+    bot.sendMessage(-1002693584186, "Test habar guruhga");
     bot.sendMessage(query.message.chat.id, "📬 Xabar yuborildi!");
   } else {
     bot.sendMessage(query.message.chat.id, "🚫 Xabar yuborilmadi.");
