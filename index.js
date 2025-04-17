@@ -1,3 +1,4 @@
+// ✅ CONFIGLAR
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
@@ -7,6 +8,7 @@ const FormData = require('form-data');
 const axios = require('axios');
 const productRoutes = require('./routes/productRoutes');
 
+// ✅ APP
 const app = express();
 const PORT = process.env.PORT || 8080;
 
@@ -14,17 +16,15 @@ app.use(cors());
 app.use(express.json());
 app.use('/api/products', productRoutes);
 
-// ✅ Mongo ulash
+// ✅ MONGO
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log('✅ MongoDB ulandi');
-    app.listen(PORT, () => {
-      console.log(`🚀 Server ${PORT}-portda ishlamoqda`);
-    });
+    app.listen(PORT, () => console.log(`🚀 Server ${PORT}-portda ishlamoqda`));
   })
   .catch(err => console.error('❌ Mongo xato:', err));
 
-// ✅ Telegram bot
+// ✅ BOT
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
 console.log("🌀 BOT YUKLANDI");
 
@@ -37,7 +37,7 @@ let tempImages = {};
 let latestProductByAdmin = {};
 const activeUsers = new Set();
 
-// ✅ /start komandasi
+// ✅ /start
 bot.onText(/\/start/, (msg) => {
   console.log("✅ /start buyrug‘i keldi!");
 
@@ -60,23 +60,26 @@ bot.onText(/\/start/, (msg) => {
   };
 
   if (adminIds.includes(userId)) {
-    bot.sendMessage(chatId, `👋 Salom, Admin ${fullName}!\n📊 Foydalanuvchilar soni: ${usersCount} ta\n🧾 Buyruqlar:\n/add — Mahsulot qo‘shish\n/list — Mahsulotlar\n/delete — O‘chirish`, {
+    bot.sendMessage(chatId, `👋 Salom, Admin ${fullName}!
+📊 Foydalanuvchilar soni: ${usersCount} ta
+🧾 Buyruqlar:\n/add — Mahsulot qo‘shish\n/list — Mahsulotlar\n/delete — O‘chirish`, {
       reply_markup: keyboard
     });
   } else {
-    bot.sendMessage(chatId, `Assalomu alaykum, ${fullName}!\n🛍 Do‘konimizga xush kelibsiz!`, {
+    bot.sendMessage(chatId, `Assalomu alaykum, ${fullName}!
+🛍 Do‘konimizga xush kelibsiz!`, {
       reply_markup: keyboard
     });
   }
 });
 
-// ✅ /add komandasi
+// ✅ /add
 bot.onText(/\/add/, (msg) => {
   if (!adminIds.includes(msg.from.id)) return;
   bot.sendMessage(msg.chat.id, "📷 Avval mahsulot rasmini yuboring, so‘ng quyidagi formatda yozing:\nNomi;Turi;Narxi;Tavsif;Yosh");
 });
 
-// ✅ Rasm qabul qilish
+// ✅ Rasm
 bot.on('photo', async (msg) => {
   if (!adminIds.includes(msg.from.id)) return;
   const fileId = msg.photo.at(-1).file_id;
@@ -85,7 +88,7 @@ bot.on('photo', async (msg) => {
   bot.sendMessage(msg.chat.id, '✅ Rasm qabul qilindi. Endi quyidagi formatda yozing:\nNomi;Turi;Narxi;Tavsif;Yosh');
 });
 
-// ✅ Matn va broadcast so‘rovi
+// ✅ Matn
 bot.on('message', async (msg) => {
   const userId = msg.from.id;
   if (!adminIds.includes(userId)) return;
@@ -114,12 +117,11 @@ bot.on('message', async (msg) => {
     } catch (err) {
       bot.sendMessage(msg.chat.id, `❌ Xatolik: ${err.message}`);
     }
-
     delete tempImages[userId];
   }
 });
 
-// ✅ /list komandasi
+// ✅ /list
 bot.onText(/\/list/, async (msg) => {
   if (!adminIds.includes(msg.from.id)) return;
   try {
@@ -133,13 +135,13 @@ bot.onText(/\/list/, async (msg) => {
   }
 });
 
-// ✅ /delete komandasi
+// ✅ /delete
 bot.onText(/\/delete/, (msg) => {
   if (!adminIds.includes(msg.from.id)) return;
   bot.sendMessage(msg.chat.id, "🗑 O‘chirish funksiyasi hozircha mavjud emas.");
 });
 
-// ✅ Ha/Yo‘q callback
+// ✅ HA / YO‘Q
 bot.on('callback_query', async (query) => {
   const [prefix, choice, userId] = query.data.split('_');
   if (prefix !== 'notify') return;
@@ -148,23 +150,27 @@ bot.on('callback_query', async (query) => {
   if (!product) return bot.answerCallbackQuery(query.id, { text: "⛔ Ma’lumot topilmadi" });
 
   const caption = `📢 <b>Yangi mahsulot qo‘shildi!</b>\n\n📦 <b>${product.name}</b>\n💰 ${product.price} so‘m\n🧾 ${product.description}\n👶 ${product.age}+ yosh`;
-  const options = {
-  parse_mode: "HTML",
-  reply_markup: {
-    inline_keyboard: [[
-      {
-        text: "🛒 Xarid qilish",
-        web_app: { url: "https://telegram-miniapp-jade-gamma.vercel.app" }
-      }
-    ]]
-  }
-};
+
+  const userOptions = {
+    parse_mode: "HTML",
+    reply_markup: {
+      inline_keyboard: [[
+        { text: "🛒 Xarid qilish", web_app: { url: "https://telegram-miniapp-jade-gamma.vercel.app" } }
+      ]]
+    }
+  };
+
+  const groupCaption = `${caption}\n\n👉 <a href=\"https://t.me/vitaminDorilar_bot?start=from_group\">@vitaminDorilar_bot orqali xarid qilish</a>`;
 
   if (choice === 'yes') {
     for (const userId of activeUsers) {
-      bot.sendPhoto(userId, product.image, { caption, ...options }).catch(() => {});
+      bot.sendPhoto(userId, product.image, { caption, ...userOptions }).catch(() => {});
     }
-    bot.sendPhoto(BROADCAST_GROUP_ID, product.image, { caption, ...options }).catch(() => {});
+    bot.sendPhoto(BROADCAST_GROUP_ID, product.image, {
+      caption: groupCaption,
+      parse_mode: "HTML"
+    }).catch(() => {});
+
     bot.sendMessage(query.message.chat.id, "📬 Xabar yuborildi!");
   } else {
     bot.sendMessage(query.message.chat.id, "🚫 Xabar yuborilmadi.");
@@ -174,7 +180,7 @@ bot.on('callback_query', async (query) => {
   bot.answerCallbackQuery(query.id);
 });
 
-// ✅ ImgBB yuklash
+// ✅ ImgBB
 async function uploadToImgbb(imageUrl) {
   const buffer = await axios.get(imageUrl, { responseType: 'arraybuffer' });
   const form = new FormData();
