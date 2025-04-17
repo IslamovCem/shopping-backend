@@ -128,6 +128,10 @@ bot.on('message', async (msg) => {
   }
 });
 
+bot.on('message', (msg) => {
+  console.log("📥 CHAT ID:", msg.chat.id);
+});
+
 bot.on('callback_query', async (query) => {
   const [prefix, choice, userId] = query.data.split('_');
   if (prefix === 'notify') {
