@@ -47,7 +47,7 @@ bot.onText(/\/start/, (msg) => {
   const keyboard = {
     inline_keyboard: [[{
       text: "🛍 Do‘konni ochish",
-      web_app: { url: "https://telegram-miniapp-jade-gamma.vercel.app" }
+      web_app: { url: "https://t.me/vitaminDorilar_bot/vitamin" }
     }]]
   };
 
