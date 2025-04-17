@@ -57,7 +57,7 @@ bot.onText(/\/start/, (msg) => {
 /delete — O‘chirish`, {
       reply_markup: {
         inline_keyboard: [[
-          { text: "🛍 Do‘konni ochish", web_app: { url: "https://telegram-miniapp-jade-gamma.vercel.app/" } }
+          { text: "🛍 Do‘konni ochish", web_app: { url: "https://telegram-miniapp-jade-gamma.vercel.app" } }
         ]]
       }
     });
@@ -66,7 +66,7 @@ bot.onText(/\/start/, (msg) => {
 🛍 Vitamin va dori mahsulotlari do‘koniga xush kelibsiz!`, {
     reply_markup: {
       inline_keyboard: [[
-        { text: "🛍 Do‘konni ochish", web_app: { url: miniAppURL } }
+        { text: "🛍 Do‘konni ochish", web_app: { url: "https://telegram-miniapp-jade-gamma.vercel.app" } }
       ]]
     }
   });
