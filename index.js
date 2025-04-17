@@ -59,7 +59,7 @@ bot.onText(/\/start/, (msg) => {
   };
 
   if (adminIds.includes(userId)) {
-    bot.sendMessage(chatId, `👋 Salom, Admin ${fullName}!\n🧾 Buyruqlar:\n/add — Mahsulot qo‘shish\n/list — Mahsulotlar\n/delete — O‘chirish`, {
+    bot.sendMessage(chatId, `👋 Salom, Admin ${fullName}!\n📊 Foydalanuvchilar soni: ${usersCount} ta\n🧾 Buyruqlar:\n/add — Mahsulot qo‘shish\n/list — Mahsulotlar\n/delete — O‘chirish`, {
       reply_markup: keyboard
     });
   } else {
@@ -151,17 +151,16 @@ bot.on('callback_query', async (query) => {
     parse_mode: "HTML",
     reply_markup: {
       inline_keyboard: [[
-        { text: "🛒 Xarid qilish", web_app: { url: "https://telegram-miniapp-jade-gamma.vercel.app" } }
+        { text: "🛒 Xarid qilish", url: "https://telegram-miniapp-jade-gamma.vercel.app" }
       ]]
     }
   };
 
   if (choice === 'yes') {
-    for (const uid of activeUsers) {
-      bot.sendPhoto(uid, product.image, { caption, ...options }).catch(() => {});
+    for (const userId of activeUsers) {
+      bot.sendPhoto(userId, product.image, { caption, ...options }).catch(() => {});
     }
     bot.sendPhoto(BROADCAST_GROUP_ID, product.image, { caption, ...options }).catch(() => {});
-    bot.sendMessage(-1002693584186, "Test habar guruhga");
     bot.sendMessage(query.message.chat.id, "📬 Xabar yuborildi!");
   } else {
     bot.sendMessage(query.message.chat.id, "🚫 Xabar yuborilmadi.");
