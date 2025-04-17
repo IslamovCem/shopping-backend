@@ -26,7 +26,7 @@ mongoose.connect(process.env.MONGO_URI)
 
 // ✅ BOT
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
-console.log("🌀 BOT YUKLANDI");
+console.log("🔀 BOT YUKLANDI");
 
 const BACKEND_URL = process.env.BACKEND_URL;
 const IMGBB_API_KEY = process.env.IMGBB_API_KEY;
@@ -53,7 +53,7 @@ bot.onText(/\/start/, (msg) => {
   const keyboard = {
     inline_keyboard: [[
       {
-        text: "🛍 Do‘konni ochish",
+        text: "🛙 Do‘konni ochish",
         web_app: { url: "https://telegram-miniapp-jade-gamma.vercel.app" }
       }
     ]]
@@ -61,13 +61,13 @@ bot.onText(/\/start/, (msg) => {
 
   if (adminIds.includes(userId)) {
     bot.sendMessage(chatId, `👋 Salom, Admin ${fullName}!
-📊 Foydalanuvchilar soni: ${usersCount} ta
-🧾 Buyruqlar:\n/add — Mahsulot qo‘shish\n/list — Mahsulotlar\n/delete — O‘chirish`, {
+📋 Foydalanuvchilar soni: ${usersCount} ta
+📝 Buyruqlar:\n/add — Mahsulot qo‘shish\n/list — Mahsulotlar\n/delete — O‘chirish`, {
       reply_markup: keyboard
     });
   } else {
     bot.sendMessage(chatId, `Assalomu alaykum, ${fullName}!
-🛍 Do‘konimizga xush kelibsiz!`, {
+🛙 Do‘konimizga xush kelibsiz!`, {
       reply_markup: keyboard
     });
   }
@@ -127,57 +127,95 @@ bot.onText(/\/list/, async (msg) => {
   try {
     const res = await axios.get(`${BACKEND_URL}/api/products`);
     for (const p of res.data) {
-      const caption = `📦 <b>${p.name}</b>\n💰 ${p.price} so‘m\n🧾 ${p.description}\n👶 ${p.age}+ yosh`;
-      await bot.sendPhoto(msg.chat.id, p.image, { caption, parse_mode: "HTML" });
+      const caption = `📦 <b>${p.name}</b>\n💰 ${p.price} so‘m\n📝 ${p.description}\n👶 ${p.age}+ yosh`;
+      const reply_markup = {
+        inline_keyboard: [[
+          { text: "✏️ Tahrirlash", callback_data: `edit_${p._id}` },
+          { text: "🗑 O‘chirish", callback_data: `delete_${p._id}` }
+        ]]
+      };
+      await bot.sendPhoto(msg.chat.id, p.image, { caption, parse_mode: "HTML", reply_markup });
     }
   } catch (err) {
     bot.sendMessage(msg.chat.id, `❌ Xatolik: ${err.message}`);
   }
 });
 
-// ✅ /delete
-bot.onText(/\/delete/, (msg) => {
-  if (!adminIds.includes(msg.from.id)) return;
-  bot.sendMessage(msg.chat.id, "🗑 O‘chirish funksiyasi hozircha mavjud emas.");
-});
-
-// ✅ HA / YO‘Q
+// ✅ DELETE & EDIT
 bot.on('callback_query', async (query) => {
   const [prefix, choice, userId] = query.data.split('_');
-  if (prefix !== 'notify') return;
 
-  const product = latestProductByAdmin[userId];
-  if (!product) return bot.answerCallbackQuery(query.id, { text: "⛔ Ma’lumot topilmadi" });
+  if (prefix === 'notify') {
+    const product = latestProductByAdmin[userId];
+    if (!product) return bot.answerCallbackQuery(query.id, { text: "⛔ Ma’lumot topilmadi" });
 
-  const caption = `📢 <b>Yangi mahsulot qo‘shildi!</b>\n\n📦 <b>${product.name}</b>\n💰 ${product.price} so‘m\n🧾 ${product.description}\n👶 ${product.age}+ yosh`;
+    const caption = `📢 <b>Yangi mahsulot qo‘shildi!</b>\n\n📦 <b>${product.name}</b>\n💰 ${product.price} so‘m\n📝 ${product.description}\n👶 ${product.age}+ yosh`;
+    const userOptions = {
+      parse_mode: "HTML",
+      reply_markup: {
+        inline_keyboard: [[
+          { text: "🛒 Xarid qilish", web_app: { url: "https://telegram-miniapp-jade-gamma.vercel.app" } }
+        ]]
+      }
+    };
+    const groupCaption = `${caption}\n\n👉 <a href=\"https://t.me/vitaminDorilar_bot?start=from_group\">@vitaminDorilar_bot orqali xarid qilish</a>`;
 
-  const userOptions = {
-    parse_mode: "HTML",
-    reply_markup: {
-      inline_keyboard: [[
-        { text: "🛒 Xarid qilish", web_app: { url: "https://telegram-miniapp-jade-gamma.vercel.app" } }
-      ]]
+    if (choice === 'yes') {
+      for (const uid of activeUsers) {
+        bot.sendPhoto(uid, product.image, { caption, ...userOptions }).catch(() => {});
+      }
+      bot.sendPhoto(BROADCAST_GROUP_ID, product.image, {
+        caption: groupCaption,
+        parse_mode: "HTML"
+      }).catch(() => {});
+      bot.sendMessage(query.message.chat.id, "📬 Xabar yuborildi!");
+    } else {
+      bot.sendMessage(query.message.chat.id, "❌ Xabar yuborilmadi.");
     }
-  };
-
-  const groupCaption = `${caption}\n\n👉 <a href=\"https://t.me/vitaminDorilar_bot?start=from_group\">@vitaminDorilar_bot orqali xarid qilish</a>`;
-
-  if (choice === 'yes') {
-    for (const userId of activeUsers) {
-      bot.sendPhoto(userId, product.image, { caption, ...userOptions }).catch(() => {});
-    }
-    bot.sendPhoto(BROADCAST_GROUP_ID, product.image, {
-      caption: groupCaption,
-      parse_mode: "HTML"
-    }).catch(() => {});
-
-    bot.sendMessage(query.message.chat.id, "📬 Xabar yuborildi!");
-  } else {
-    bot.sendMessage(query.message.chat.id, "🚫 Xabar yuborilmadi.");
+    delete latestProductByAdmin[userId];
+    return bot.answerCallbackQuery(query.id);
   }
 
-  delete latestProductByAdmin[userId];
-  bot.answerCallbackQuery(query.id);
+  // ✅ O‘chirish
+  if (prefix === 'delete') {
+    const id = choice;
+    try {
+      await axios.delete(`${BACKEND_URL}/api/products/${id}`);
+      await bot.editMessageCaption('🗑 Mahsulot o‘chirildi.', {
+        chat_id: query.message.chat.id,
+        message_id: query.message.message_id
+      });
+    } catch (err) {
+      bot.sendMessage(query.message.chat.id, `❌ O‘chirishda xatolik: ${err.message}`);
+    }
+    return bot.answerCallbackQuery(query.id);
+  }
+
+  // ✅ Tahrirlash
+  if (prefix === 'edit') {
+    const id = choice;
+    bot.sendMessage(query.message.chat.id, `✏️ Yangi ma’lumotni kiriting:\nFormat: Nomi;Turi;Narxi;Tavsif;Yosh`, {
+      reply_markup: { force_reply: true }
+    }).then(sent => {
+      bot.onReplyToMessage(sent.chat.id, sent.message_id, async (reply) => {
+        const parts = reply.text.split(';');
+        if (parts.length < 5) {
+          return bot.sendMessage(sent.chat.id, `❌ Format xato. Namuna:
+Paracetamol;vitamin;18000;Tavsif;12+`);
+        }
+        const [name, type, price, description, age] = parts;
+        try {
+          await axios.put(`${BACKEND_URL}/api/products/${id}`, {
+            name, type, price, description, age
+          });
+          bot.sendMessage(sent.chat.id, '✅ Mahsulot yangilandi.');
+        } catch (err) {
+          bot.sendMessage(sent.chat.id, `❌ Xatolik: ${err.message}`);
+        }
+      });
+    });
+    return bot.answerCallbackQuery(query.id);
+  }
 });
 
 // ✅ ImgBB
@@ -185,10 +223,8 @@ async function uploadToImgbb(imageUrl) {
   const buffer = await axios.get(imageUrl, { responseType: 'arraybuffer' });
   const form = new FormData();
   form.append('image', Buffer.from(buffer.data).toString('base64'));
-
   const res = await axios.post(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, form, {
     headers: form.getHeaders()
   });
-
   return res.data.data.display_url;
 }
