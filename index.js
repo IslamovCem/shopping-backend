@@ -149,13 +149,16 @@ bot.on('callback_query', async (query) => {
 
   const caption = `📢 <b>Yangi mahsulot qo‘shildi!</b>\n\n📦 <b>${product.name}</b>\n💰 ${product.price} so‘m\n🧾 ${product.description}\n👶 ${product.age}+ yosh`;
   const options = {
-    parse_mode: "HTML",
-    reply_markup: {
-      inline_keyboard: [[
-        { text: "🛒 Xarid qilish", url: "https://telegram-miniapp-jade-gamma.vercel.app" }
-      ]]
-    }
-  };
+  parse_mode: "HTML",
+  reply_markup: {
+    inline_keyboard: [[
+      {
+        text: "🛒 Xarid qilish",
+        web_app: { url: "https://telegram-miniapp-jade-gamma.vercel.app" }
+      }
+    ]]
+  }
+};
 
   if (choice === 'yes') {
     for (const userId of activeUsers) {
