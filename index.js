@@ -48,6 +48,7 @@ bot.onText(/\/start/, (msg) => {
   const fullName = name + (lastName ? ' ' + lastName : '');
 
   if (msg.chat.type === 'private') activeUsers.add(chatId);
+  const usersCount = activeUsers.size;
 
   const keyboard = {
     inline_keyboard: [[
